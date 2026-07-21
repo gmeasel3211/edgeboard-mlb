@@ -5,6 +5,7 @@ app = FastAPI(title="EdgeBoard MLB")
 
 
 @app.get("/health")
+@app.get("/healthz")
 def health():
     return {"status": "ok"}
 
