@@ -1,14 +1,45 @@
-FROM python:3.12-slim
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050913">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body>
+<nav class="nav-shell">
+  <a class="brand" href="/">
+    <span class="brand-mark">E</span>
+    <span><b>EdgeBoard</b><small>MLB</small></span>
+  </a>
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+  <div class="nav-links">
+    <a class="{% if page == 'dashboard' %}active{% endif %}" href="/">Dashboard</a>
+    <a class="{% if page == 'history' %}active{% endif %}" href="/history">History</a>
+  </div>
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+  <div class="badge {% if demo_mode %}warning{% else %}live{% endif %}">
+    {% if demo_mode %}DEMO DATA{% else %}<i></i> LIVE DATA{% endif %}
+  </div>
+</nav>
 
-COPY app ./app
-COPY README.md DEPLOY_RENDER.md ./
+{% if demo_mode %}
+<div class="alert">
+  This site is showing sample odds. Add a valid <code>ODDS_API_KEY</code> and set <code>DEMO_MODE=false</code> before using recommendations.
+</div>
+{% endif %}
 
-EXPOSE 8000
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <span>EdgeBoard MLB · Model {{ model_version }}</span>
+  <span>Recommendations are estimates, not guarantees. The application never places wagers.</span>
+</footer>
+
+<script src="{{ url_for('static', path='app.js') }}"></script>
+</body>
+</html>

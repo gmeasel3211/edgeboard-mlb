@@ -1,89 +1,105 @@
-import math
-import re
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import date, datetime
+from typing import Optional
+
+from sqlalchemy import Boolean, Date, DateTime, Float, Integer, String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .db import Base
 
 
-TEAM_ALIASES = {
-    "arizona diamondbacks": "Arizona Diamondbacks",
-    "athletics": "Athletics",
-    "oakland athletics": "Athletics",
-    "atlanta braves": "Atlanta Braves",
-    "baltimore orioles": "Baltimore Orioles",
-    "boston red sox": "Boston Red Sox",
-    "chicago cubs": "Chicago Cubs",
-    "chicago white sox": "Chicago White Sox",
-    "cincinnati reds": "Cincinnati Reds",
-    "cleveland guardians": "Cleveland Guardians",
-    "colorado rockies": "Colorado Rockies",
-    "detroit tigers": "Detroit Tigers",
-    "houston astros": "Houston Astros",
-    "kansas city royals": "Kansas City Royals",
-    "los angeles angels": "Los Angeles Angels",
-    "los angeles dodgers": "Los Angeles Dodgers",
-    "miami marlins": "Miami Marlins",
-    "milwaukee brewers": "Milwaukee Brewers",
-    "minnesota twins": "Minnesota Twins",
-    "new york mets": "New York Mets",
-    "new york yankees": "New York Yankees",
-    "philadelphia phillies": "Philadelphia Phillies",
-    "pittsburgh pirates": "Pittsburgh Pirates",
-    "san diego padres": "San Diego Padres",
-    "san francisco giants": "San Francisco Giants",
-    "seattle mariners": "Seattle Mariners",
-    "st. louis cardinals": "St. Louis Cardinals",
-    "st louis cardinals": "St. Louis Cardinals",
-    "tampa bay rays": "Tampa Bay Rays",
-    "texas rangers": "Texas Rangers",
-    "toronto blue jays": "Toronto Blue Jays",
-    "washington nationals": "Washington Nationals",
-}
+class Game(Base):
+    __tablename__ = "games"
+
+    id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    game_date: Mapped[date] = mapped_column(Date, index=True)
+    commence_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    provider_game_id: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    mlb_game_pk: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+
+    away_team: Mapped[str] = mapped_column(String(80))
+    home_team: Mapped[str] = mapped_column(String(80))
+    away_team_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    home_team_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    away_pitcher: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    home_pitcher: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    away_pitcher_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    home_pitcher_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    venue: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    status: Mapped[str] = mapped_column(String(30), default="scheduled")
+    away_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    home_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    weather_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 
-def canonical_team(name: str) -> str:
-    cleaned = re.sub(r"\s+", " ", name.strip().lower())
-    return TEAM_ALIASES.get(cleaned, name.strip())
+class Quote(Base):
+    __tablename__ = "quotes"
+    __table_args__ = (
+        UniqueConstraint(
+            "game_id", "bookmaker", "market", "selection", "line", "fetched_at",
+            name="uq_quote_snapshot"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    game_id: Mapped[str] = mapped_column(String(120), index=True)
+    bookmaker: Mapped[str] = mapped_column(String(30))
+    market: Mapped[str] = mapped_column(String(30))
+    selection: Mapped[str] = mapped_column(String(100))
+    line: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    price: Mapped[int] = mapped_column(Integer)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
-def game_key(game_date, away: str, home: str) -> str:
-    return f"{game_date.isoformat()}::{canonical_team(away)}::{canonical_team(home)}"
+class Projection(Base):
+    __tablename__ = "projections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    game_id: Mapped[str] = mapped_column(String(120), index=True)
+    model_version: Mapped[str] = mapped_column(String(30))
+    away_runs: Mapped[float] = mapped_column(Float)
+    home_runs: Mapped[float] = mapped_column(Float)
+    away_win_prob: Mapped[float] = mapped_column(Float)
+    home_win_prob: Mapped[float] = mapped_column(Float)
+    data_quality: Mapped[int] = mapped_column(Integer)
+    reasons_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
 
 
-def american_to_implied(odds: int | float) -> float:
-    odds = float(odds)
-    return (-odds) / ((-odds) + 100.0) if odds < 0 else 100.0 / (odds + 100.0)
+class Recommendation(Base):
+    __tablename__ = "recommendations"
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    pick_date: Mapped[date] = mapped_column(Date, index=True)
+    game_id: Mapped[str] = mapped_column(String(120), index=True)
+    model_version: Mapped[str] = mapped_column(String(30))
 
-def implied_to_american(prob: float) -> int:
-    prob = min(max(prob, 0.001), 0.999)
-    return round(-100 * prob / (1 - prob)) if prob >= 0.5 else round(100 * (1 - prob) / prob)
+    market: Mapped[str] = mapped_column(String(30))
+    selection: Mapped[str] = mapped_column(String(100))
+    line: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    bookmaker: Mapped[str] = mapped_column(String(30))
+    odds: Mapped[int] = mapped_column(Integer)
 
+    model_prob: Mapped[float] = mapped_column(Float)
+    market_prob: Mapped[float] = mapped_column(Float)
+    fair_odds: Mapped[int] = mapped_column(Integer)
+    edge: Mapped[float] = mapped_column(Float)
+    expected_value: Mapped[float] = mapped_column(Float)
+    units: Mapped[float] = mapped_column(Float)
+    grade: Mapped[str] = mapped_column(String(10))
+    data_quality: Mapped[int] = mapped_column(Integer)
+    explanation_json: Mapped[str] = mapped_column(Text)
 
-def american_profit_per_unit(odds: int | float) -> float:
-    odds = float(odds)
-    return 100.0 / (-odds) if odds < 0 else odds / 100.0
+    official: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    result: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    profit_units: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    closing_odds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    clv: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
-
-def no_vig_probability(selected_odds: int, opposite_odds: int) -> float:
-    a = american_to_implied(selected_odds)
-    b = american_to_implied(opposite_odds)
-    return a / (a + b)
-
-
-def expected_value(prob: float, odds: int) -> float:
-    return prob * american_profit_per_unit(odds) - (1 - prob)
-
-
-def fractional_kelly(prob: float, odds: int, fraction: float) -> float:
-    b = american_profit_per_unit(odds)
-    raw = max(0.0, (b * prob - (1 - prob)) / b)
-    return raw * fraction
-
-
-def normal_cdf(x: float, mean: float, std: float) -> float:
-    z = (x - mean) / max(std, 0.001)
-    return 0.5 * (1 + math.erf(z / math.sqrt(2)))
-
-
-def local_now(tz_name: str) -> datetime:
-    return datetime.now(ZoneInfo(tz_name))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    graded_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

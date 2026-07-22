@@ -1,64 +1,42 @@
-from datetime import datetime
-from typing import Any
-
-import httpx
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class WeatherClient:
-    USER_AGENT = "EdgeBoardMLB/2.1 (personal model dashboard)"
+class Settings(BaseSettings):
+    app_name: str = "EdgeBoard MLB"
+    environment: str = "development"
+    timezone: str = "America/New_York"
+    database_url: str = "sqlite:///./edgeboard.db"
 
-    async def forecast_for(self, latitude: float | None, longitude: float | None, game_time: datetime) -> dict[str, Any]:
-        if latitude is None or longitude is None:
-            return self.neutral()
-        headers = {"User-Agent": self.USER_AGENT, "Accept": "application/geo+json"}
-        try:
-            async with httpx.AsyncClient(timeout=20, headers=headers) as client:
-                point = await client.get(f"https://api.weather.gov/points/{latitude},{longitude}")
-                point.raise_for_status()
-                hourly_url = point.json()["properties"]["forecastHourly"]
-                forecast = await client.get(hourly_url)
-                forecast.raise_for_status()
-                periods = forecast.json()["properties"]["periods"]
+    odds_api_key: str = ""
+    sportradar_api_key: str = ""
+    cron_secret: str = "change-me"
+    site_password: str = ""
 
-            closest = min(
-                periods,
-                key=lambda p: abs(datetime.fromisoformat(p["startTime"]).timestamp() - game_time.timestamp())
-            )
-            wind_speed = self._parse_wind(closest.get("windSpeed", "0 mph"))
-            temp = float(closest.get("temperature", 72))
-            precip = float(closest.get("probabilityOfPrecipitation", {}).get("value") or 0)
-            wind_dir = closest.get("windDirection", "")
-            factor = 1.0 + (temp - 72) * 0.002
-            if wind_speed >= 8:
-                # Cardinal direction alone cannot establish out/in for every park, so use a conservative variance bump.
-                factor += min(wind_speed, 20) * 0.001
-            factor -= min(precip, 100) * 0.0004
-            return {
-                "temperature": temp,
-                "wind_speed": wind_speed,
-                "wind_direction": wind_dir,
-                "precip_probability": precip,
-                "description": closest.get("shortForecast", ""),
-                "run_factor": max(0.90, min(1.12, factor)),
-                "quality": 78,
-            }
-        except Exception:
-            return self.neutral()
+    run_internal_scheduler: bool = True
+    refresh_on_startup: bool = True
+    refresh_minutes: int = 30
+    daily_pick_hour_et: int = 8
+    max_official_picks: int = 3
 
-    @staticmethod
-    def _parse_wind(value: str) -> float:
-        import re
-        nums = [float(x) for x in re.findall(r"\d+(?:\.\d+)?", value)]
-        return sum(nums) / len(nums) if nums else 0.0
+    model_version: str = "3.0.0-hybrid"
+    bankroll: float = 1000.0
+    unit_percent: float = 0.01
+    kelly_fraction: float = 0.20
+    max_bet_units: float = 1.75
+    max_daily_units: float = 4.0
 
-    @staticmethod
-    def neutral() -> dict[str, Any]:
-        return {
-            "temperature": 72.0,
-            "wind_speed": 0.0,
-            "wind_direction": "",
-            "precip_probability": 0.0,
-            "description": "Weather unavailable",
-            "run_factor": 1.0,
-            "quality": 45,
-        }
+    min_edge: float = 0.03
+    min_ev: float = 0.03
+    min_data_quality: int = 70
+    min_hybrid_score: float = 60.0
+    max_model_market_disagreement: float = 0.16
+
+    demo_mode: bool = True
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

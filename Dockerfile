@@ -1,35 +1,42 @@
-APP_NAME=EdgeBoard MLB
-ENVIRONMENT=development
-TIMEZONE=America/New_York
-DATABASE_URL=sqlite:///./edgeboard.db
+# Publish EdgeBoard as a real website
 
-# Required for live FanDuel + DraftKings odds:
-ODDS_API_KEY=
+## What the Blueprint creates
 
-# Optional. The app otherwise uses MLB's public web-data endpoints.
-SPORTRADAR_API_KEY=
+The included `render.yaml` creates:
 
-# Security for the manual refresh / cron endpoint:
-CRON_SECRET=replace-with-a-long-random-string
-SITE_PASSWORD=choose-a-private-dashboard-password
+- `edgeboard-mlb`: the public FastAPI website
+- `edgeboard-mlb-db`: managed PostgreSQL storage
+- `edgeboard-mlb-refresh`: a cron worker that refreshes every 30 minutes
+- a generated `SITE_PASSWORD` and `CRON_SECRET`
+- a prompt for your private `ODDS_API_KEY`
 
-# Automatic refresh:
-RUN_INTERNAL_SCHEDULER=true
-REFRESH_ON_STARTUP=true
-REFRESH_MINUTES=30
-DAILY_PICK_HOUR_ET=8
-MAX_OFFICIAL_PICKS=3
+## Publish steps
 
-# Model / staking:
-MODEL_VERSION=2.1.0
-BANKROLL=1000
-UNIT_PERCENT=0.01
-KELLY_FRACTION=0.25
-MAX_BET_UNITS=2.0
-MAX_DAILY_UNITS=5.0
-MIN_EDGE=0.025
-MIN_EV=0.025
-MIN_DATA_QUALITY=65
+1. Put this folder in a GitHub repository.
+2. Sign in to Render.
+3. Choose **New → Blueprint**.
+4. Connect the GitHub repository.
+5. Render reads `render.yaml` automatically.
+6. Enter your Odds API key when prompted for `ODDS_API_KEY`.
+7. Approve the services and database.
+8. After deployment, open the web service's `onrender.com` URL.
+9. In the web service environment settings, reveal/copy `SITE_PASSWORD` and use it when the site prompts you.
 
-# Set true only to preview the interface without a live odds key.
-DEMO_MODE=true
+## Costs
+
+The production Blueprint intentionally uses paid starter compute and a basic PostgreSQL database. The cron service also has a minimum monthly charge. Check Render's current pricing screen before approving the Blueprint.
+
+## Custom domain
+
+After the site is live:
+
+1. Open the Render web service.
+2. Choose **Settings → Custom Domains**.
+3. Add your purchased domain.
+4. Add the DNS records Render provides at your domain registrar.
+
+Render provisions and renews HTTPS automatically after verification.
+
+## Updating the website
+
+Push updates to the connected GitHub branch. Render automatically rebuilds and deploys the latest version.
