@@ -1,0 +1,22 @@
+EDGEBOARD PROFESSIONAL UPDATE
+
+Backend
+• Added browser-protected /admin page.
+• Added /admin/actions/refresh for standard refresh, forced card regeneration,
+  and grading.
+• Added /admin/actions/status for operation status.
+• Added /admin/settings and /admin/settings/reset.
+• Added /admin/export/today.csv.
+• Added runtime refresh locking and operation state.
+• Added database-backed RuntimeSetting and SystemEvent models.
+• Expanded /api/status.
+• Preserved the existing cron and Bearer-token admin refresh endpoints.
+
+Frontend
+• Rebuilt the global layout with a professional responsive sidebar and top bar.
+• Redesigned the daily dashboard, official picks, slate, candidate table and
+  performance tables.
+• Added a searchable history ledger.
+• Added Admin Center controls, settings editor, health panel, guardrails and
+  audit log.
+• Added mobile navigation, notifications and live action feedback.

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Bet History · {{ app_name }}{% endblock %}
+{% block content %}
+
+<section class="page-hero compact-hero">
+  <div>
+    <div class="eyebrow">PERMANENT PERFORMANCE LEDGER</div>
+    <h1>Official bet history</h1>
+    <p>Every official recommendation remains stored with its original price, model probability, stake, result and closing-line value.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="button button-ghost" href="/">Back to today</a>
+    <a class="button button-primary" href="/admin/export/today.csv">Export today's card</a>
+  </div>
+</section>
+
+<section class="kpi-grid history-kpis">
+  <article class="kpi-card"><div><span>Record</span><strong>{{ wins }}–{{ losses }}–{{ pushes }}</strong><small>{{ graded_count }} settled wagers</small></div></article>
+  <article class="kpi-card"><div><span>Net profit</span><strong class="{% if profit >= 0 %}positive{% else %}negative{% endif %}">{{ "%+.2f"|format(profit) }}u</strong><small>{{ "%.2f"|format(units_risked) }} units risked</small></div></article>
+  <article class="kpi-card"><div><span>ROI</span><strong>{{ "%.1f%%"|format(roi * 100) }}</strong><small>Return on official exposure</small></div></article>
+  <article class="kpi-card"><div><span>Average CLV</span><strong>{% if avg_clv is not none %}{{ "%+.2f%%"|format(avg_clv * 100) }}{% else %}—{% endif %}</strong><small>Closing implied probability</small></div></article>
+</section>
+
+<section class="panel">
+  <div class="section-head history-head">
+    <div>
+      <div class="eyebrow">ALL OFFICIAL PICKS</div>
+      <h2>{{ picks|length }} stored recommendations</h2>
+      <p>Search any team, market, sportsbook, status or date.</p>
+    </div>
+    <label class="search-field">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input type="search" placeholder="Search history…" data-table-search="history-table" autocomplete="off">
+    </label>
+  </div>
+
+  <div class="table-wrap large-table">
+    <table class="data-table" id="history-table">
+      <thead>
+        <tr><th>Date</th><th>Game</th><th>Market</th><th>Selection</th><th>Book</th><th>Odds</th><th>Model</th><th>Edge</th><th>Units</th><th>Status</th><th>P/L</th><th>CLV</th></tr>
+      </thead>
+      <tbody>
+      {% for p in picks %}
+        {% set game = games.get(p.game_id) %}
+        <tr>
+          <td>{{ p.pick_date }}</td>
+          <td>{% if game %}{{ game.away_team }} @ {{ game.home_team }}{% else %}{{ p.game_id }}{% endif %}</td>
+          <td><span class="table-pill">{{ p.market|market_name }}</span></td>
+          <td><strong>{{ p.selection }}{% if p.line is not none %} {{ "%+g"|format(p.line) }}{% endif %}</strong></td>
+          <td>{{ p.bookmaker|upper }}</td>
+          <td>{{ "%+d"|format(p.odds) }}</td>
+          <td>{{ "%.1f%%"|format(p.model_prob*100) }}</td>
+          <td class="positive">{{ "%+.1f%%"|format(p.edge*100) }}</td>
+          <td>{{ "%.2f"|format(p.units) }}</td>
+          <td>{% if p.result %}<span class="result-badge {{ p.result }}">{{ p.result|upper }}</span>{% else %}<span class="result-badge pending">PENDING</span>{% endif %}</td>
+          <td class="{% if (p.profit_units or 0) >= 0 %}positive{% else %}negative{% endif %}">{% if p.profit_units is not none %}{{ "%+.2f"|format(p.profit_units) }}u{% else %}—{% endif %}</td>
+          <td>{% if p.clv is not none %}{{ "%+.2f%%"|format(p.clv*100) }}{% else %}—{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="12"><div class="table-empty">No official picks have been stored.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="search-empty" data-search-empty hidden>No history rows match that search.</div>
+</section>
+
+{% endblock %}

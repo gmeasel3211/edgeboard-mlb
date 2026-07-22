@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body data-page="{{ page|default('') }}">
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/" aria-label="EdgeBoard MLB home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" role="img"><path d="M6 8.5h20M6 16h14M6 23.5h20"/><circle cx="23" cy="16" r="3"/></svg>
+      </span>
+      <span class="brand-copy"><b>EdgeBoard</b><small>MLB Intelligence</small></span>
+    </a>
+
+    <nav class="side-nav" aria-label="Primary navigation">
+      <span class="nav-label">Workspace</span>
+      <a class="{% if page == 'dashboard' %}active{% endif %}" href="/">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="{% if page == 'history' %}active{% endif %}" href="/history">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg>
+        <span>Bet history</span>
+      </a>
+      <a class="{% if page == 'admin' %}active{% endif %}" href="/admin">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.55v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.05 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2.2V9.55h.15a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.86-2.86.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V2.2h4.05v.15a1.7 1.7 0 0 0 1.1 1.5 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06a1.7 1.7 0 0 0-.34 1.88c.17.4.38.74.6 1 .3.28.68.42 1.1.4H21v4.05h-.1a1.7 1.7 0 0 0-1.5 1.1Z"/></svg>
+        <span>Admin center</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="system-tile">
+      <div class="system-tile-head">
+        <span class="pulse-dot {% if demo_mode %}warning{% endif %}"></span>
+        <strong>{% if demo_mode %}Demo data{% else %}Live feeds{% endif %}</strong>
+      </div>
+      <p>{% if last_refresh %}Last sync {{ last_refresh|local_time }}{% else %}Waiting for first data sync{% endif %}</p>
+      <a href="/admin">Open system controls →</a>
+    </div>
+
+    <div class="sidebar-meta">
+      <span>Model {{ model_version }}</span>
+      <span>{{ environment|upper }}</span>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <button class="icon-button mobile-menu" type="button" data-menu-toggle aria-label="Open navigation">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="topbar-title">
+        <span class="eyebrow">EDGEBOARD MLB</span>
+        <strong>{% if page == 'dashboard' %}Daily intelligence{% elif page == 'history' %}Performance ledger{% elif page == 'admin' %}Operations center{% else %}Model workspace{% endif %}</strong>
+      </div>
+      <div class="topbar-actions">
+        <span class="security-chip {% if not site_secured %}warning{% endif %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5V11Z"/></svg>
+          {% if site_secured %}Private{% else %}Unprotected{% endif %}
+        </span>
+        <a class="button button-ghost button-small" href="/admin">Controls</a>
+      </div>
+    </header>
+
+    {% if demo_mode %}
+    <div class="global-alert">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Zm0 6v5m0 3.5v.1"/></svg>
+      <div>
+        <strong>Demo data is active</strong>
+        <span>Add a valid <code>ODDS_API_KEY</code> and set <code>DEMO_MODE=false</code> before treating recommendations as live.</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <main class="content-shell">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+      <span>EdgeBoard MLB · Model {{ model_version }}</span>
+      <span>Recommendations are estimates, not guarantees. EdgeBoard never places wagers.</span>
+    </footer>
+  </div>
+</div>
+
+<div class="sidebar-scrim" data-menu-close></div>
+<div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+<script src="{{ url_for('static', path='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Admin Center · {{ app_name }}{% endblock %}
+{% block content %}
+
+<section class="page-hero compact-hero admin-hero">
+  <div>
+    <div class="eyebrow">PRIVATE OPERATIONS CENTER</div>
+    <h1>Run the board with control.</h1>
+    <p>Refresh data, regenerate the official card, grade completed games, export picks and tune the live model without editing Python.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="button button-ghost" href="/">View dashboard</a>
+    <a class="button button-primary" href="/admin/export/today.csv">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
+      Export today's card
+    </a>
+  </div>
+</section>
+
+{% if not site_secured %}
+<div class="inline-alert danger-alert">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Zm0 6v5m0 3.5v.1"/></svg>
+  <div><strong>Admin Center is not password-protected.</strong><span>Set <code>SITE_PASSWORD</code> in Render before sharing this URL.</span></div>
+</div>
+{% endif %}
+
+<section class="kpi-grid admin-kpis">
+  <article class="kpi-card"><div><span>Today's games</span><strong>{{ counts.today_games }}</strong><small>Loaded matchups</small></div></article>
+  <article class="kpi-card"><div><span>Official card</span><strong>{{ counts.today_official }}</strong><small>Tracked picks today</small></div></article>
+  <article class="kpi-card"><div><span>Qualified candidates</span><strong>{{ counts.today_candidates }}</strong><small>Current watchlist</small></div></article>
+  <article class="kpi-card"><div><span>Pending grades</span><strong>{{ counts.pending }}</strong><small>Official picks awaiting finals</small></div></article>
+</section>
+
+<section class="admin-layout">
+  <div class="admin-main-column">
+    <section class="panel control-panel">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">BOARD OPERATIONS</div>
+          <h2>Model controls</h2>
+          <p>Actions run on the server using your private dashboard access. Your cron secret never enters the browser.</p>
+        </div>
+        <div class="operation-state" data-operation-state>
+          <span class="pulse-dot {% if refresh_state.running %}working{% endif %}"></span>
+          <div><b>{% if refresh_state.running %}Refresh running{% else %}System ready{% endif %}</b><small data-operation-detail>{% if refresh_state.running %}Started {{ refresh_state.started_at }}{% else %}No action in progress{% endif %}</small></div>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <article class="control-card">
+          <div class="control-icon blue">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-6V1M4 17h6v6M19 12a7 7 0 0 0-12-5L4 10m16 4-3 3a7 7 0 0 1-12-5"/></svg>
+          </div>
+          <div>
+            <span class="control-kicker">SAFE REFRESH</span>
+            <h3>Refresh data & candidates</h3>
+            <p>Pull the latest schedule, scores and odds, rerun projections and rebuild the candidate watchlist. Existing official picks stay frozen.</p>
+          </div>
+          <button class="button button-secondary full-width" type="button" data-admin-action="refresh">Run standard refresh</button>
+        </article>
+
+        <article class="control-card featured-control">
+          <div class="featured-ribbon">PRIMARY ACTION</div>
+          <div class="control-icon green">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg>
+          </div>
+          <div>
+            <span class="control-kicker">FORCE OFFICIAL = TRUE</span>
+            <h3>Regenerate today's official card</h3>
+            <p>Runs a full refresh, returns pending official picks to candidate status and selects a new card using the current settings.</p>
+          </div>
+          <button class="button button-primary full-width" type="button" data-admin-action="force_official" data-confirm="Regenerate today's official card? Pending official picks may be replaced.">Regenerate official picks</button>
+        </article>
+
+        <article class="control-card">
+          <div class="control-icon gold">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v4H8V3ZM5 7h14v14H5V7Z"/><path d="m8 14 2.5 2.5L16 11"/></svg>
+          </div>
+          <div>
+            <span class="control-kicker">RESULT SETTLEMENT</span>
+            <h3>Grade completed games</h3>
+            <p>Checks final scores for loaded games and settles any pending official recommendations that are ready to grade.</p>
+          </div>
+          <button class="button button-secondary full-width" type="button" data-admin-action="grade">Grade pending picks</button>
+        </article>
+      </div>
+
+      <div class="operation-output" data-operation-output hidden>
+        <div class="operation-output-head"><strong>Latest action result</strong><button type="button" class="icon-button" data-output-close aria-label="Close result">×</button></div>
+        <pre data-operation-json></pre>
+      </div>
+    </section>
+
+    <section class="panel settings-panel">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">LIVE MODEL CONFIGURATION</div>
+          <h2>Strategy settings</h2>
+          <p>Saved values persist in the configured application database and are re-applied when the service starts.</p>
+        </div>
+        <div class="section-actions">
+          <button class="button button-ghost button-small" type="button" data-settings-reset data-confirm="Reset every admin override to the Render environment values?">Reset overrides</button>
+          <button class="button button-primary button-small" type="submit" form="settings-form">Save settings</button>
+        </div>
+      </div>
+
+      <form id="settings-form" class="settings-form" data-settings-form>
+        {% for group in setting_groups %}
+        <fieldset class="settings-group">
+          <legend>{{ group }}</legend>
+          <div class="settings-grid">
+            {% for setting in runtime_settings if setting.group == group %}
+            <label class="setting-field">
+              <span class="setting-label">
+                <b>{{ setting.label }}</b>
+                {% if setting.overridden %}<em>Override</em>{% endif %}
+              </span>
+              <span class="setting-description">{{ setting.description }}</span>
+              <span class="number-input-wrap">
+                {% if setting.prefix %}<span>{{ setting.prefix }}</span>{% endif %}
+                <input
+                  type="number"
+                  inputmode="decimal"
+                  data-setting-key="{{ setting.key }}"
+                  data-scale="{% if setting.format == 'percent' %}0.01{% else %}1{% endif %}"
+                  value="{% if setting.format == 'percent' %}{{ setting.value * 100 }}{% else %}{{ setting.value }}{% endif %}"
+                  min="{% if setting.format == 'percent' %}{{ setting.minimum * 100 }}{% else %}{{ setting.minimum }}{% endif %}"
+                  max="{% if setting.format == 'percent' %}{{ setting.maximum * 100 }}{% else %}{{ setting.maximum }}{% endif %}"
+                  step="{% if setting.format == 'percent' %}{{ setting.step * 100 }}{% else %}{{ setting.step }}{% endif %}"
+                  required
+                >
+                {% if setting.format == 'percent' %}<span>%</span>{% elif setting.suffix %}<span>{{ setting.suffix }}</span>{% endif %}
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        {% endfor %}
+        <div class="settings-foot">
+          <span>Saving settings does not automatically rewrite today's card.</span>
+          <button class="button button-primary" type="submit">Save all settings</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">SYSTEM AUDIT LOG</div>
+          <h2>Recent operations</h2>
+          <p>Refresh, grading and settings events recorded by the server.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table event-table">
+          <thead><tr><th>Time</th><th>Event</th><th>Source</th><th>Status</th><th>Summary</th></tr></thead>
+          <tbody>
+            {% for event in recent_events %}
+            <tr>
+              <td>{{ event.created_at|local_time }}</td>
+              <td>{{ event.event_type|replace('_', ' ')|title }}</td>
+              <td>{{ event.source|upper }}</td>
+              <td><span class="result-badge {% if event.status == 'success' %}win{% else %}loss{% endif %}">{{ event.status|upper }}</span></td>
+              <td class="event-summary">{{ event.summary }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5"><div class="table-empty">No system events have been recorded yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <aside class="admin-side-column">
+    <section class="panel system-panel">
+      <div class="eyebrow">SYSTEM HEALTH</div>
+      <h2>Environment</h2>
+      <div class="health-list">
+        <div><span>Application</span><b>{{ environment|title }}</b></div>
+        <div><span>Model version</span><b>{{ model_version }}</b></div>
+        <div><span>Data source</span><b class="{% if demo_mode %}warning-text{% else %}positive{% endif %}">{% if demo_mode %}Demo{% else %}Live{% endif %}</b></div>
+        <div><span>Scheduler</span><b class="{% if scheduler_enabled %}positive{% else %}warning-text{% endif %}">{% if scheduler_enabled %}Enabled{% else %}Disabled{% endif %}</b></div>
+        <div><span>Refresh interval</span><b>{{ runtime_settings|selectattr('key', 'equalto', 'refresh_minutes')|map(attribute='value')|first }} min</b></div>
+        <div><span>Last market sync</span><b>{{ last_refresh|local_time }}</b></div>
+        <div><span>Stored quotes</span><b>{{ counts.quotes }}</b></div>
+        <div><span>Stored projections</span><b>{{ counts.projections }}</b></div>
+      </div>
+    </section>
+
+    <section class="panel exposure-panel">
+      <div class="eyebrow">CURRENT RISK RULES</div>
+      <h2>Card guardrails</h2>
+      <div class="risk-ring">
+        <div><strong>{{ runtime_settings|selectattr('key', 'equalto', 'max_official_picks')|map(attribute='value')|first }}</strong><span>max picks</span></div>
+      </div>
+      <div class="mini-stat-grid">
+        <div><span>Daily cap</span><b>{{ "%.2f"|format(runtime_settings|selectattr('key', 'equalto', 'max_daily_units')|map(attribute='value')|first) }}u</b></div>
+        <div><span>Bet cap</span><b>{{ "%.2f"|format(runtime_settings|selectattr('key', 'equalto', 'max_bet_units')|map(attribute='value')|first) }}u</b></div>
+        <div><span>Min edge</span><b>{{ "%.1f%%"|format((runtime_settings|selectattr('key', 'equalto', 'min_edge')|map(attribute='value')|first) * 100) }}</b></div>
+        <div><span>Min EV</span><b>{{ "%.1f%%"|format((runtime_settings|selectattr('key', 'equalto', 'min_ev')|map(attribute='value')|first) * 100) }}</b></div>
+      </div>
+    </section>
+
+    <section class="panel admin-help">
+      <div class="eyebrow">OPERATOR NOTES</div>
+      <h2>Recommended flow</h2>
+      <ol>
+        <li>Save any strategy-setting changes.</li>
+        <li>Run <b>Refresh data & candidates</b>.</li>
+        <li>Review the candidate watchlist.</li>
+        <li>Use <b>Regenerate official picks</b> only when you intend to replace today's pending card.</li>
+      </ol>
+    </section>
+  </aside>
+</section>
+
+{% endblock %}
