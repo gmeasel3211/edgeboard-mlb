@@ -1,6 +1,45 @@
-{% if demo_mode %}DEMO DATA{% else %} LIVE DATA{% endif %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050913">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+</head>
+<body>
+<nav class="nav-shell">
+  <a class="brand" href="/">
+    <span class="brand-mark">E</span>
+    <span><b>EdgeBoard</b><small>MLB</small></span>
+  </a>
+
+  <div class="nav-links">
+    <a class="{% if page == 'dashboard' %}active{% endif %}" href="/">Dashboard</a>
+    <a class="{% if page == 'history' %}active{% endif %}" href="/history">History</a>
+  </div>
+
+  <div class="badge {% if demo_mode %}warning{% else %}live{% endif %}">
+    {% if demo_mode %}DEMO DATA{% else %}<i></i> LIVE DATA{% endif %}
+  </div>
+</nav>
+
 {% if demo_mode %}
-This site is showing sample odds. Add a valid ODDS_API_KEY and set DEMO_MODE=false before using recommendations.
+<div class="alert">
+  This site is showing sample odds. Add a valid <code>ODDS_API_KEY</code> and set <code>DEMO_MODE=false</code> before using recommendations.
+</div>
 {% endif %}
-{% block content %}{% endblock %}
-EdgeBoard MLB · Model {{ model_version }} Recommendations are estimates, not guarantees. The application never places wagers.
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <span>EdgeBoard MLB · Model {{ model_version }}</span>
+  <span>Recommendations are estimates, not guarantees. The application never places wagers.</span>
+</footer>
+
+<script src="{{ url_for('static', path='app.js') }}"></script>
+</body>
+</html>
