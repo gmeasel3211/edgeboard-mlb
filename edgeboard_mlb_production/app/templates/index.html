@@ -1,15 +1,4 @@
-{% extends "base.html" %} {% block title %}Today's Card · {{ app_name }}{% endblock %} {% block content %}
-AUTOMATED MLB BETTING MODEL
-Today’s edge,
-ranked and tracked.
-FanDuel and DraftKings prices only. Official plays are frozen when selected and graded automatically after final scores.
-
-System status
-{% if last_refresh %}Live and refreshed{% else %}Waiting for first refresh{% endif %} {% if last_refresh %}Last update {{ last_refresh|local_time }}{% else %}Scheduled every 30 minutes{% endif %}
-Official record {{ wins }}–{{ losses }}–{{ pushes }} {{ graded_count }} settled bets
-Units {{ "%+.2f"|format(profit) }}u {{ "%.2f"|format(units_risked) }}u risked
-ROI {{ "%.1f%%"|format(roi * 100) }} Official picks only
-Average CLV {% if avg_clv is not none %}{{ "%+.2f%%"|format(avg_clv * 100) }}{% else %}—{% endif %} Closing implied probability{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Today's Card · {{ app_name }}{% endblock %}
 {% block content %}
 
@@ -215,64 +204,4 @@ Average CLV {% if avg_clv is not none %}{{ "%+.2f%%"|format(avg_clv * 100) }}{% 
   </div>
 </section>
 
-{% endblock %}
-
-Unit value ${{ "%.2f"|format(unit_value) }} Based on configured bankroll
-{{ today }}
-Official card
-{{ official|length }} tracked pick{% if official|length != 1 %}s{% endif %}
-{% if official %}
-{% for p in official %} {% set game = games.get(p.game_id) %}
-{{ p.grade }} {{ p.bookmaker|upper }}
-{{ p.market|market_name }}
-{{ p.selection }}{% if p.line is not none %} {{ "%+g"|format(p.line) }}{% endif %}
-{% if game %}{{ game.away_team }} at {{ game.home_team }}{% else %}{{ p.game_id }}{% endif %}
-
-{{ "%+d"|format(p.odds) }}
-Model
-{{ "%.1f%%"|format(p.model_prob * 100) }}
-Fair
-{{ "%+d"|format(p.fair_odds) }}
-Edge
-{{ "%+.1f%%"|format(p.edge * 100) }}
-EV
-{{ "%+.1f%%"|format(p.expected_value * 100) }}
-{{ "%.2f"|format(p.units) }} units ${{ "%.2f"|format(p.units * unit_value) }}
-Why the model likes it
-{% endfor %}
-{% else %}
-Ø
-No official plays yet
-The model does not force action. A card appears only after a market clears the edge, EV and data-quality thresholds.
-
-{% endif %}
-TODAY'S SLATE
-Game projections
-Projected score and win probability
-{% for game_id, game in games.items() %} {% set projection = projections.get(game_id) %}
-{{ game.commence_time|local_time }}
-{{ game.away_team }} {% if projection %}{{ "%.1f"|format(projection.away_runs) }}{% else %}—{% endif %}
-{{ game.home_team }} {% if projection %}{{ "%.1f"|format(projection.home_runs) }}{% else %}—{% endif %}
-{% if projection %}
-{{ "%.0f%%"|format(projection.away_win_prob * 100) }} {{ "%.0f%%"|format(projection.home_win_prob * 100) }}
-Data quality {{ projection.data_quality }}/100
-{% else %} Waiting for model refresh {% endif %}
-{% else %}
-No games have been loaded for today.
-
-{% endfor %}
-WATCHLIST
-Qualifying candidates
-Not part of the official record
-{% for p in candidates %} {% set game = games.get(p.game_id) %} {% else %} {% endfor %}
-Game	Market	Selection	Book	Odds	Model	Edge	EV	Units
-{% if game %}{{ game.away_team }} @ {{ game.home_team }}{% else %}{{ p.game_id }}{% endif %}	{{ p.market|market_name }}	{{ p.selection }}{% if p.line is not none %} {{ "%+g"|format(p.line) }}{% endif %}	{{ p.bookmaker|upper }}	{{ "%+d"|format(p.odds) }}	{{ "%.1f%%"|format(p.model_prob * 100) }}	{{ "%+.1f%%"|format(p.edge * 100) }}	{{ "%+.1f%%"|format(p.expected_value * 100) }}	{{ "%.2f"|format(p.units) }}
-No candidates currently clear the thresholds.
-AUDIT TRAIL
-Recent results
-View full history →
-{% for p in recent %} {% else %} {% endfor %}
-Date	Selection	Book	Odds	Result	P/L	Close	CLV
-{{ p.pick_date }}	{{ p.selection }}{% if p.line is not none %} {{ "%+g"|format(p.line) }}{% endif %}	{{ p.bookmaker|upper }}	{{ "%+d"|format(p.odds) }}	{{ p.result|upper }}	{{ "%+.2f"|format(p.profit_units or 0) }}u	{% if p.closing_odds is not none %}{{ "%+d"|format(p.closing_odds) }}{% else %}—{% endif %}	{% if p.clv is not none %}{{ "%+.2f%%"|format(p.clv * 100) }}{% else %}—{% endif %}
-No settled official picks yet.
 {% endblock %}
