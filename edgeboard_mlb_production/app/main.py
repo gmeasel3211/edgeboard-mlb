@@ -179,7 +179,11 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
         "recent": recent,
         "page": "dashboard",
     })
-    return templates.TemplateResponse("index.html", context)
+    return templates.TemplateResponse(
+    request=request,
+    name="index.html",
+    context=context,
+)
 
 
 @app.get("/history", response_class=HTMLResponse, dependencies=[Depends(require_site_access)])
@@ -193,7 +197,11 @@ def history(request: Request, db: Session = Depends(get_db)):
     games = {g.id: g for g in db.scalars(select(Game)).all()}
     context = common_context(request, db)
     context.update({"picks": picks, "games": games, "page": "history"})
-    return templates.TemplateResponse("history.html", context)
+    return templates.TemplateResponse(
+    request=request,
+    name="history.html",
+    context=context,
+)
 
 
 @app.get("/api/status", dependencies=[Depends(require_site_access)])
