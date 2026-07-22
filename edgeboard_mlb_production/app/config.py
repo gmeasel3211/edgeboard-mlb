@@ -19,15 +19,18 @@ class Settings(BaseSettings):
     daily_pick_hour_et: int = 8
     max_official_picks: int = 3
 
-    model_version: str = "2.1.0"
+    model_version: str = "3.0.0-hybrid"
     bankroll: float = 1000.0
     unit_percent: float = 0.01
-    kelly_fraction: float = 0.25
-    max_bet_units: float = 2.0
-    max_daily_units: float = 5.0
-    min_edge: float = 0.025
-    min_ev: float = 0.025
-    min_data_quality: int = 65
+    kelly_fraction: float = 0.20
+    max_bet_units: float = 1.75
+    max_daily_units: float = 4.0
+
+    min_edge: float = 0.03
+    min_ev: float = 0.03
+    min_data_quality: int = 70
+    min_hybrid_score: float = 60.0
+    max_model_market_disagreement: float = 0.16
 
     demo_mode: bool = True
 
